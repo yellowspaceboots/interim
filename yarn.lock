@@ -1244,6 +1244,11 @@ fastq@^1.6.0:
   dependencies:
     reusify "^1.0.4"
 
+fauna@^1.3.1:
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/fauna/-/fauna-1.3.1.tgz#9421feab3e0c137fe6ab96d8976df4b4b7151c65"
+  integrity sha512-A4JEj5v2KyOfjlze1Wb/fAWRxDfoGr61PhMvjV5jcfkLJ2ouzchsCXbzqzANetj8g/O/jth3wO2s02d6+ePuyQ==
+
 faunadb@^4.8.0:
   version "4.8.0"
   resolved "https://registry.yarnpkg.com/faunadb/-/faunadb-4.8.0.tgz#7adc5312dd5a508942ba1ad567c869e4f874b177"

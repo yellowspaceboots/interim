@@ -1,5 +1,7 @@
 import './globals.css'
 import Navbar from '../components/NavBar'
+import { redirect } from 'next/navigation'
+import { auth } from '../../auth'
 
 export const metadata = {
   title: 'Destiny',
@@ -14,6 +16,10 @@ export const viewport = {
 }
 
 export default async function RootLayout ({ children }) {
+  const session = await auth()
+  if (!session) {
+    redirect('/api/auth/signin')
+  }
   return (
     <html lang='en'>
       <head />
