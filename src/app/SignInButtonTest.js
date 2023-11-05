@@ -9,7 +9,7 @@ export default function SignInButton ({ session }) {
         ? (
           <img
             onClick={() => signOut()}
-            src={session.user.image}
+            src={`data:image/jpeg;base64${session.user.image}`}
             className='brightness-75 hover:brightness-100 h-7 w-7 ml-4 rounded-full cursor-pointer'
             alt='Picture of the author'
           />
