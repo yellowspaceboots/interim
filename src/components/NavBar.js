@@ -1,12 +1,11 @@
 import React from 'react'
 import Link from 'next/link'
 import { Bars3Icon, Cog6ToothIcon, ArrowPathIcon, MagnifyingGlassIcon, PuzzlePieceIcon } from '@heroicons/react/24/solid'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '../pages/api/auth/[...nextauth]'
+import { auth } from '../../auth'
 import SignInButton from '@/app/SignInButtonTest'
 
 export default async function Navbar () {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
   return (
     <header className='sticky top-0 z-50'>
       <div className='relative'>
