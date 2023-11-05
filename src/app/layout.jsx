@@ -3,6 +3,7 @@ import Navbar from '../components/NavBar'
 import { redirect } from 'next/navigation'
 import { auth } from '../../auth'
 
+
 export const metadata = {
   title: 'Destiny',
   description: 'What we have all been waiting for.',

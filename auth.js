@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth'
-import { FaunaAdapter } from '@auth/fauna-adapter'
+// import { FaunaAdapter } from '@auth/fauna-adapter'
+import { FaunaAdapter } from './src/utils/fauna-adapterV10'
 import AzureADProvider from 'next-auth/providers/azure-ad'
 import client from './src/utils/fauna-client'
 
