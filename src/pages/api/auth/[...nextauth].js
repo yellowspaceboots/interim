@@ -38,7 +38,7 @@ export const authOptions = {
     },
     async session ({ session, user }) {
       session.user.id = user.id
-      return session
+      return { session, user }
     }
   }
 }
