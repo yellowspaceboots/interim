@@ -14,7 +14,7 @@ export default function SignInButton ({ session }) {
             alt='Picture of the author'
           />
           )
-        : <button onClick={() => signIn('bungie')} className='bg-white/0 text-white hover:text-amber-600 ml-4'>My Account</button>}
+        : <button onClick={() => signIn('azure-ad')} className='bg-white/0 text-white hover:text-amber-600 ml-4'>My Account</button>}
     </>
 
   )
