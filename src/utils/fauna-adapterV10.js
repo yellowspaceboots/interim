@@ -53,6 +53,7 @@ const from = object => {
       async getUserByAccount({ provider, providerAccountId }) {
         const key = [provider, providerAccountId]
         const userId = await client.query(getFaunaUserIdByAccount(key))
+        console.log(userId)
         const user = await client.query(getFaunaUser(userId))
         return user
       },
