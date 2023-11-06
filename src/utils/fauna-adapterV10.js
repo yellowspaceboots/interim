@@ -29,21 +29,21 @@ const from = object => {
   
   
   export function FaunaAdapter(client) {
-    const createFaunaUser = data => fql`users.create(${to(data)})`
+    const createFaunaUser = data => fql`users.create(${data})` // to
     const getFaunaUser = id => fql`users.byId(${id})`
     const getFaunaUserByEmail = email => fql`users.firstWhere(.email == ${email})`
     const getFaunaUserIdByAccount = key => fql`accounts.account_by_provider_and_provider_account_id(${key}) { id }`
-    const updateFaunaUser = data => fql`users.byId(${data.id}).update({ ${to(data)} })`
+    const updateFaunaUser = data => fql`users.byId(${data.id}).update({ ${data} })` // to
     const deleteFaunaUserSessions = userId => fql`sessions.sessions_by_user_id(${userId}).foreach(session => session.delete())`
     const deleteFaunaUserAccounts = userId => fql`accounts.accounts_by_user_id(${userId}).foreach(account => account.delete())`
     const deleteFaunaUser = userId => fql`users.byId(${userId})!.delete()`
-    const createFaunaAccount = data => fql`accounts.create(${to(data)})`
+    const createFaunaAccount = data => fql`accounts.create(${data})` // to
     const unlinkFaunaAccount = key => fql`accounts.account_by_provider_and_provider_account_id(${key}).foreach(account => account.delete())`
-    const createFaunaSession = data => fql`sessions.create(${to(data)})`
+    const createFaunaSession = data => fql`sessions.create(${data})` // to
     const getFaunaSessionByToken = token => fql`sessions.session_by_session_token(${token})`
-    const updateFaunaSession = data => fql`sessions.session_by_session_token(${data.sessionToken}).update({ ${to(data)} })`
+    const updateFaunaSession = data => fql`sessions.session_by_session_token(${data.sessionToken}).update({ ${data} })` // to
     const deleteFaunaSessions = token => fql`sessions.session_by_session_token(${token}).foreach(session => session.delete())`
-    const createFaunaVerificationToken = data => fql`verification_tokens.create(${to(data)})`
+    const createFaunaVerificationToken = data => fql`verification_tokens.create(${data})` // to
     const useFaunaVerificationToken = key => fql`verification_tokens.verification_token_by_identifier_and_token(${key})`
     const deleteFaunaVerificationToken = id => fql`verification_tokens.byId(${id})!.delete()`
     return {
