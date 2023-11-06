@@ -32,7 +32,7 @@ const from = object => {
     const createFaunaUser = data => fql`users.create(${data})` // to
     const getFaunaUser = id => fql`users.byId(${id})`
     const getFaunaUserByEmail = email => fql`users.firstWhere(.email == ${email})`
-    const getFaunaUserIdByAccount = key => fql`accounts.account_by_provider_and_provider_account_id(${key}) { id }`
+    const getFaunaUserIdByAccount = (provider, providerAccountId) => fql`accounts.account_by_provider_and_provider_account_id(${provider, providerAccountId}).first() { id }`
     const updateFaunaUser = data => fql`users.byId(${data.id}).update({ ${data} })` // to
     const deleteFaunaUserSessions = userId => fql`sessions.sessions_by_user_id(${userId}).foreach(session => session.delete())`
     const deleteFaunaUserAccounts = userId => fql`accounts.accounts_by_user_id(${userId}).foreach(account => account.delete())`
@@ -51,24 +51,20 @@ const from = object => {
       getUser: async id => await client.query(getFaunaUser(id)),
       getUserByEmail: async email => await client.query(getFaunaUserByEmail(email)),
       getUserByAccount: async ({ provider, providerAccountId }) => {
-        const key = [provider, providerAccountId]
-        const userId = await client.query(getFaunaUserIdByAccount(key))
+        const userId = await client.query(getFaunaUserIdByAccount(provider, providerAccountId))
         const user = await client.query(getFaunaUser(userId.id))
         return user
       },
       updateUser: async data => await client.query(updateFaunaUser(data)),
-      async deleteUser(userId) {
+      deleteUser: async userId => {
         await client.query(deleteFaunaUserSessions(userId))
         await client.query(deleteFaunaUserAccounts(userId))
         await client.query(deleteFaunaUser(userId))
       },
       linkAccount: async data => await client.query(createFaunaAccount(data)),
-      async unlinkAccount({ provider, providerAccountId }) {
-        const key = [provider, providerAccountId]
-        await client.query(unlinkFaunaAccount(key))
-      },
+      unlinkAccount: async ({ provider, providerAccountId }) => await client.query(unlinkFaunaAccount([provider, providerAccountId])),
       createSession: async data => await client.query(createFaunaSession(data)),
-      async getSessionAndUser(sessionToken) {
+      getSessionAndUser: async (sessionToken) => {
         const session = await client.query(getFaunaSessionByToken(sessionToken))
         console.log(session)
         if (!session) return null
@@ -80,7 +76,7 @@ const from = object => {
       updateSession: async data => await client.query(updateFaunaSession(data)),
       deleteSession: async sessionToken => await client.query(deleteFaunaSessions(sessionToken)),
       createVerificationToken: async data => await client.query(createFaunaVerificationToken(data)),
-      async useVerificationToken({ identifier, token }) {
+      useVerificationToken: async ({ identifier, token }) => {
         const key = [identifier, token]
         const object = Get(Match(VerificationTokenByIdentifierAndToken, key))
   
