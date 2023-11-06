@@ -71,6 +71,7 @@ const from = object => {
       createSession: async data => await client.query(createFaunaSession(data)),
       async getSessionAndUser(sessionToken) {
         const session = await client.query(getFaunaSessionByToken(sessionToken))
+        console.log(session)
         if (!session) return null
   
         const user = client.query(getFaunaUser(session.userId))
