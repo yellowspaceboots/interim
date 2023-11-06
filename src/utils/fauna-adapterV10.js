@@ -54,7 +54,7 @@ const from = object => {
         const key = [provider, providerAccountId]
         const userId = await client.query(getFaunaUserIdByAccount(key))
         console.log(userId)
-        const user = await client.query(getFaunaUser(userId))
+        const user = await client.query(getFaunaUser(userId.id))
         return user
       },
       updateUser: async data => await client.query(updateFaunaUser(data)),
