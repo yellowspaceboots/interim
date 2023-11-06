@@ -50,10 +50,9 @@ const from = object => {
       createUser: async data => await client.query(createFaunaUser(data)),
       getUser: async id => await client.query(getFaunaUser(id)),
       getUserByEmail: async email => await client.query(getFaunaUserByEmail(email)),
-      async getUserByAccount({ provider, providerAccountId }) {
+      getUserByAccount: async ({ provider, providerAccountId }) => {
         const key = [provider, providerAccountId]
         const userId = await client.query(getFaunaUserIdByAccount(key))
-        console.log(userId)
         const user = await client.query(getFaunaUser(userId.id))
         return user
       },
