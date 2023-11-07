@@ -40,7 +40,7 @@ const from = object => {
     const createFaunaAccount = data => fql`accounts.create(${data})` // to
     const unlinkFaunaAccount = key => fql`accounts.account_by_provider_and_provider_account_id(${key}).foreach(account => account.delete())`
     const createFaunaSession = data => fql`sessions.create(${data})` // to
-    const getFaunaSessionByToken = token => fql`sessions.session_by_session_token(${token})`
+    const getFaunaSessionByToken = token => fql`sessions.session_by_session_token(${token}).first()`
     const updateFaunaSession = data => fql`sessions.session_by_session_token(${data.sessionToken}).update({ ${data} })` // to
     const deleteFaunaSessions = token => fql`sessions.session_by_session_token(${token}).foreach(session => session.delete())`
     const createFaunaVerificationToken = data => fql`verification_tokens.create(${data})` // to
@@ -67,7 +67,6 @@ const from = object => {
       createSession: async data => await client.query(createFaunaSession(data)),
       getSessionAndUser: async (sessionToken) => {
         const session = await client.query(getFaunaSessionByToken(sessionToken))
-        console.log(session)
         if (!session) return null
   
         const user = client.query(getFaunaUser(session.userId))
