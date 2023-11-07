@@ -1,6 +1,6 @@
 import { fql } from 'fauna'
 
-
+/*
 const to = object => {
       const newObject = {}
       for (const key in object) {
@@ -33,7 +33,7 @@ const from = object => {
     const getFaunaUser = id => fql`users.byId(${id})`
     const getFaunaUserByEmail = email => fql`users.firstWhere(.email == ${email})`
     const getFaunaUserIdByAccount = (provider, providerAccountId) => fql`accounts.account_by_provider_and_provider_account_id(${provider, providerAccountId}).first() { id }`
-    const updateFaunaUser = data => fql`users.byId(${data.id}).update({ ${data} })` // to
+    const updateFaunaUser = data => fql`users.byId(${data.id}).update(${data})` // to
     const deleteFaunaUserSessions = userId => fql`sessions.sessions_by_user_id(${userId}).foreach(session => session.delete())`
     const deleteFaunaUserAccounts = userId => fql`accounts.accounts_by_user_id(${userId}).foreach(account => account.delete())`
     const deleteFaunaUser = userId => fql`users.byId(${userId})!.delete()`
@@ -69,7 +69,7 @@ const from = object => {
         const session = await client.query(getFaunaSessionByToken(sessionToken))
         if (!session) return null
   
-        const user = client.query(getFaunaUser(session.userId))
+        const user = await client.query(getFaunaUser(session.userId))
   
         return { session, user: user }
       },
@@ -92,4 +92,67 @@ const from = object => {
       }
     }
   }
+*/
+export function FaunaAdapter(client, options = {}) {
+  return {
+    async createUser(user) {
+      return await client.query(fql`users.create(${user})`)
+    },
+    async getUser(id) {
+      return await client.query(fql`users.byId(${id})`)
+    },
+    async getUserByEmail(email) {
+      return await client.query(fql`users.firstWhere(.email == ${email})`)
+    },
+    async getUserByAccount({ providerAccountId, provider }) {
+        const userId = await client.query(fql`accounts.account_by_provider_and_provider_account_id(${provider, providerAccountId}).first() { id }`)
+        const user = await client.query(fql`users.byId(${userId.id})`)
+        return user
+    },
+    async updateUser(user) {
+      return await client.query(fql`users.byId(${user.id}).update(${user})`)
+    },
+    async deleteUser(userId) {
+        await client.query(fql`sessions.sessions_by_user_id(${userId}).foreach(session => session.delete())`)
+        await client.query(fql`accounts.accounts_by_user_id(${userId}).foreach(account => account.delete())`)
+        await client.query(fql`users.byId(${userId})!.delete()`)
+    },
+    async linkAccount(account) {
+      return await client.query(fql`accounts.create(${account})`)
+    },
+    async unlinkAccount({ providerAccountId, provider }) {
+      return await client.query(fql`accounts.account_by_provider_and_provider_account_id(${providerAccountId, provider}).foreach(account => account.delete())`)
+    },
+    async createSession({ sessionToken, userId, expires }) {
+      return await client.query(fql`sessions.create(${{ sessionToken, userId, expires }})`)
+    },
+    async getSessionAndUser(sessionToken) {
+        const session = await client.query(fql`sessions.session_by_session_token(${sessionToken}).first()`)
+        if (!session) return null
   
+        const user = await client.query(fql`users.byId(${session.userId})`)
+  
+        return { session, user: user }
+    },
+    async updateSession(data) {
+      return await client.query(fql`sessions.session_by_session_token(${data.sessionToken}).update({ ${data} })`)
+    },
+    async deleteSession(sessionToken) {
+      return await client.query(fql`sessions.session_by_session_token(${sessionToken}).foreach(session => session.delete())`)
+    },
+    async createVerificationToken(data) {
+      return await client.query(fql`verification_tokens.create(${data})`)
+    },
+    async useVerificationToken({ identifier, token }) {  
+        const verificationToken = await client.query(fql`verification_tokens.verification_token_by_identifier_and_token(${identifier, token})`)
+        if (!verificationToken) return null
+  
+        // Verification tokens can be used only once
+        await client.query(fql`verification_tokens.byId(${verificationToken.id})!.delete()`)
+  
+        // @ts-expect-error
+        delete verificationToken.id
+        return verificationToken
+    },
+  }
+}
