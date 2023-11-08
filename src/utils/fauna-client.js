@@ -1,6 +1,6 @@
-import { Client } from 'fauna'
+import { Client as FaunaClient } from "fauna"
 
-const client = new Client({
+const client = new FaunaClient({
   secret: process.env.FAUNA_PUBLIC_KEY2
 })
 

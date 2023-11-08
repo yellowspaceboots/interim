@@ -2,15 +2,12 @@ import { fql } from "fauna"
 
 export function FaunaAdapter(f) {
   const { to, from } = format
-  const q = query(f, from)
-  const createUserQuery = fql`Users.create({ to(data) })`
+  const q = query => f.query(query)
 
   return {
     createUser: async data => await q(fql`Users.create({ ${to(data)} })`),
     getUser: async id => await q(fql`Users.byId(${id})`),
-    getUserByEmail: async email =>
-      // email has a unique constraint in Fauna so it's safe to assume there's only one.
-      await q(fql`Users.byEmail(${email}).first()`),
+    getUserByEmail: async email => await q(fql`Users.byEmail(${email}).first()`),
     getUserByAccount: async ({ provider, providerAccountId }) => {
       const accountQuery = fql`Accounts.byProviderAndProviderAccountId(${provider}, ${providerAccountId}).first()`
       const accountResult = await q(accountQuery)
