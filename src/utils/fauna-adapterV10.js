@@ -2,7 +2,7 @@ import { fql } from "fauna"
 
 export function FaunaAdapter(f) {
   const { to, from } = format
-  const q = query => f.query(query)
+  const q = query(f, from)
 
   return {
     createUser: async data => await q(fql`Users.create({ ${to(data)} })`),
