@@ -18,9 +18,6 @@ export const viewport = {
 
 export default async function RootLayout ({ children }) {
   const session = await auth()
-  if (!session) {
-    redirect('/api/auth/signin')
-  }
   return (
     <html lang='en'>
       <head />
