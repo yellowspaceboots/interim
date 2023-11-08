@@ -1,158 +1,118 @@
-import { fql } from 'fauna'
+import { fql } from "fauna"
 
-/*
-const to = object => {
-      const newObject = {}
-      for (const key in object) {
-        const value = object[key]
-        if (value instanceof Date) {
-          newObject[key] = fql`Time(${value.toISOString()})`
-        } else {
-          newObject[key] = value
-        }
-      }
-      return newObject
-    }
-const from = object => {
-      const newObject = {}
-      for (const key in object) {
-        const value = object[key]
-        if (value?.value && typeof value.value === "string") {
-          newObject[key] = new Date(value.value)
-        } else {
-          newObject[key] = value
-        }
-      }
-      return newObject
-    }
-  
-  
-  
-  export function FaunaAdapter(client) {
-    const createFaunaUser = data => fql`users.create(${data})` // to
-    const getFaunaUser = id => fql`users.byId(${id})`
-    const getFaunaUserByEmail = email => fql`users.firstWhere(.email == ${email})`
-    const getFaunaUserIdByAccount = (provider, providerAccountId) => fql`accounts.account_by_provider_and_provider_account_id(${provider, providerAccountId}).first() { id }`
-    const updateFaunaUser = data => fql`users.byId(${data.id}).update(${data})` // to
-    const deleteFaunaUserSessions = userId => fql`sessions.sessions_by_user_id(${userId}).foreach(session => session.delete())`
-    const deleteFaunaUserAccounts = userId => fql`accounts.accounts_by_user_id(${userId}).foreach(account => account.delete())`
-    const deleteFaunaUser = userId => fql`users.byId(${userId})!.delete()`
-    const createFaunaAccount = data => fql`accounts.create(${data})` // to
-    const unlinkFaunaAccount = key => fql`accounts.account_by_provider_and_provider_account_id(${key}).foreach(account => account.delete())`
-    const createFaunaSession = data => fql`sessions.create(${data})` // to
-    const getFaunaSessionByToken = token => fql`sessions.session_by_session_token(${token}).first()`
-    const updateFaunaSession = data => fql`sessions.session_by_session_token(${data.sessionToken}).update({ ${data} })` // to
-    const deleteFaunaSessions = token => fql`sessions.session_by_session_token(${token}).foreach(session => session.delete())`
-    const createFaunaVerificationToken = data => fql`verification_tokens.create(${data})` // to
-    const useFaunaVerificationToken = key => fql`verification_tokens.verification_token_by_identifier_and_token(${key})`
-    const deleteFaunaVerificationToken = id => fql`verification_tokens.byId(${id})!.delete()`
-    return {
-      createUser: async data => await client.query(createFaunaUser(data)),
-      getUser: async id => await client.query(getFaunaUser(id)),
-      getUserByEmail: async email => await client.query(getFaunaUserByEmail(email)),
-      getUserByAccount: async ({ provider, providerAccountId }) => {
-        const userId = await client.query(getFaunaUserIdByAccount(provider, providerAccountId))
-        console.log(userId)
-        const user = await client.query(getFaunaUser(userId.id))
-        return user
-      },
-      updateUser: async data => await client.query(updateFaunaUser(data)),
-      deleteUser: async userId => {
-        await client.query(deleteFaunaUserSessions(userId))
-        await client.query(deleteFaunaUserAccounts(userId))
-        await client.query(deleteFaunaUser(userId))
-      },
-      linkAccount: async data => await client.query(createFaunaAccount(data)),
-      unlinkAccount: async ({ provider, providerAccountId }) => await client.query(unlinkFaunaAccount([provider, providerAccountId])),
-      createSession: async data => await client.query(createFaunaSession(data)),
-      getSessionAndUser: async (sessionToken) => {
-        const session = await client.query(getFaunaSessionByToken(sessionToken))
-        if (!session) return null
-  
-        const user = await client.query(getFaunaUser(session.userId))
-  
-        return { session, user: user }
-      },
-      updateSession: async data => await client.query(updateFaunaSession(data)),
-      deleteSession: async sessionToken => await client.query(deleteFaunaSessions(sessionToken)),
-      createVerificationToken: async data => await client.query(createFaunaVerificationToken(data)),
-      useVerificationToken: async ({ identifier, token }) => {
-        const key = [identifier, token]
-        const object = Get(Match(VerificationTokenByIdentifierAndToken, key))
-  
-        const verificationToken = await client.query(useFaunaVerificationToken(key))
-        if (!verificationToken) return null
-  
-        // Verification tokens can be used only once
-        await client.query(deleteFaunaVerificationToken(verificationToken.id))
-  
-        // @ts-expect-error
-        delete verificationToken.id
-        return verificationToken
-      }
+export function FaunaAdapter(f) {
+  const { to, from } = format
+  const q = query(f, from)
+  const createUserQuery = fql`Users.create({ to(data) })`
+
+  return {
+    createUser: async data => await q(fql`Users.create({ ${to(data)} })`),
+    getUser: async id => await q(fql`Users.byId(${id})`),
+    getUserByEmail: async email =>
+      // email has a unique constraint in Fauna so it's safe to assume there's only one.
+      await q(fql`Users.byEmail(${email}).first()`),
+    getUserByAccount: async ({ provider, providerAccountId }) => {
+      const accountQuery = fql`Accounts.byProviderAndProviderAccountId(${provider}, ${providerAccountId}).first()`
+      const accountResult = await q(accountQuery)
+      if (!accountResult) return null
+
+      const userQuery = fql`Users.byId(${accountResult.userId})`
+      const userResult = await q(userQuery)
+      return userResult
+    },
+    updateUser: async data =>
+      await q(fql`Users.byId(${data.id})!.update({ ${to(data)} })`),
+    deleteUser: async userId => {
+      await q(fql`Sessions.byUserId(${userId})!.forEach(.delete())`)
+      await q(fql`Accounts.byUserId(${userId})!.forEach(.delete())`)
+      await q(fql`Users.byId(${userId})!.delete()`)
+      return null
+    },
+    linkAccount: async data => await q(fql`Accounts.create(${to(data)})!`),
+    unlinkAccount: async ({ provider, providerAccountId }) =>
+      await q(
+        fql`Accounts.byProviderAndProviderAccountId(${provider}, ${providerAccountId}).first().delete()`
+      ),
+    createSession: async data => await q(fql`Sessions.create(${to(data)})`),
+    getSessionAndUser: async sessionToken => {
+      const session = await q(
+        fql`Sessions.bySessionToken(${sessionToken})!.first()`
+      )
+      if (!session) return null
+      const user = await q(fql`Users.byId(${session.userId})!`)
+      return { session: session, user: user }
+    },
+    updateSession: async data =>
+      await q(
+        fql`Sessions.bySessionToken(${data.sessionToken}).update(${to(data)})`
+      ),
+    deleteSession: async sessionToken =>
+      await q(fql`Sessions.bySessionToken(${sessionToken}).forEach(.delete())`),
+    createVerificationToken: async data => {
+      const { id: _id, ...verificationToken } = await q(
+        fql`VerificationTokens.create(${to(data)})`
+      )
+      return verificationToken
+    },
+    useVerificationToken: async ({ identifier, token }) => {
+      const object = fql`VerificationTokens.byIdentifierAndToken(${identifier}, ${token})`
+      const verificationToken = await q(object)
+      if (!verificationToken) return null
+
+      await q(fql`VerificationTokens.byId(${verificationToken.id}).delete()`)
+      delete verificationToken.id
+      return verificationToken
     }
   }
-*/
-export function FaunaAdapter(client, options = {}) {
-  return {
-    async createUser(user) {
-      return await client.query(fql`users.create(${user})`)
-    },
-    async getUser(id) {
-      return await client.query(fql`users.byId(${id})`)
-    },
-    async getUserByEmail(email) {
-      return await client.query(fql`users.firstWhere(.email == ${email})`)
-    },
-    async getUserByAccount({ providerAccountId, provider }) {
-        const userId = await client.query(fql`accounts.account_by_provider_and_provider_account_id(${provider, providerAccountId}).first() { id }`)
-        const user = await client.query(fql`users.byId(${userId.id})`)
-        return user
-    },
-    async updateUser(user) {
-      return await client.query(fql`users.byId(${user.id}).update(${user})`)
-    },
-    async deleteUser(userId) {
-        await client.query(fql`sessions.sessions_by_user_id(${userId}).foreach(session => session.delete())`)
-        await client.query(fql`accounts.accounts_by_user_id(${userId}).foreach(account => account.delete())`)
-        await client.query(fql`users.byId(${userId})!.delete()`)
-    },
-    async linkAccount(account) {
-      return await client.query(fql`accounts.create(${account})`)
-    },
-    async unlinkAccount({ providerAccountId, provider }) {
-      return await client.query(fql`accounts.account_by_provider_and_provider_account_id(${providerAccountId, provider}).foreach(account => account.delete())`)
-    },
-    async createSession({ sessionToken, userId, expires }) {
-      return await client.query(fql`sessions.create(${{ sessionToken, userId, expires }})`)
-    },
-    async getSessionAndUser(sessionToken) {
-        const session = await client.query(fql`sessions.session_by_session_token(${sessionToken}).first()`)
-        if (!session) return null
-  
-        const user = await client.query(fql`users.byId(${session.userId})`)
-  
-        return { session, user: user }
-    },
-    async updateSession(data) {
-      return await client.query(fql`sessions.session_by_session_token(${data.sessionToken}).update({ ${data} })`)
-    },
-    async deleteSession(sessionToken) {
-      return await client.query(fql`sessions.session_by_session_token(${sessionToken}).foreach(session => session.delete())`)
-    },
-    async createVerificationToken(data) {
-      return await client.query(fql`verification_tokens.create(${data})`)
-    },
-    async useVerificationToken({ identifier, token }) {  
-        const verificationToken = await client.query(fql`verification_tokens.verification_token_by_identifier_and_token(${identifier, token})`)
-        if (!verificationToken) return null
-  
-        // Verification tokens can be used only once
-        await client.query(fql`verification_tokens.byId(${verificationToken.id})!.delete()`)
-  
-        // @ts-expect-error
-        delete verificationToken.id
-        return verificationToken
-    },
+}
+
+export const format = {
+  /** Takes a plain old JavaScript object and turns it into a Fauna object */
+  to(object) {
+    const newObject = {}
+    for (const key in object) {
+      const value = object[key]
+      if (value instanceof Date) {
+        newObject[key] = value.toISOString()
+      } else {
+        newObject[key] = value
+      }
+    }
+    return newObject
+  },
+  /** Takes a Fauna object and returns a plain old JavaScript object */
+  from(object) {
+    const newObject = {}
+    for (const key in object) {
+      const value = object[key]
+      if (key === "expires" && typeof value === "string") {
+        newObject[key] = new Date(value)
+      } else {
+        newObject[key] = value
+      }
+    }
+    return newObject
+  }
+}
+
+/**
+ * Fauna throws an error when something is not found in the db,
+ * `next-auth` expects `null` to be returned
+ */
+export function query(f, format) {
+  return async function(expr) {
+    try {
+      const result = await f.query(expr)
+      if (!result) return null
+      // If the query returns a null result, it might be hidden inside a .data key.
+      if (Object.keys(result).includes("data") && !result.data) return null
+      console.log(result)
+      const finalResult = result.data ? format(result.data) : format(result)
+      return finalResult
+    } catch (error) {
+      if (error.name === "NotFound") return null
+      if (error.description?.includes("Number or numeric String expected"))
+        return null
+    }
   }
 }
